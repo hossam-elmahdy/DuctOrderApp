@@ -8,26 +8,25 @@ namespace DuctOrderApp.Services
 {
     /// <summary>
     /// Handles all Excel read/write operations via ClosedXML.
+    /// Fix: replaced XLWorkbook.OpenOrCreate() (doesn't exist in 0.102.x)
+    ///      with the correct pattern: new XLWorkbook(path) when file exists.
     /// </summary>
     public class ExcelService
     {
-        // ── Configuration ────────────────────────────────────────────────────
-        private const string FILE_NAME      = "Orders.xlsx";
-        private const string SHEET_NAME     = "Orders";
+        private const string FILE_NAME     = "Orders.xlsx";
+        private const string SHEET_NAME    = "Orders";
 
-        // Column positions (1-based)
-        private const int COL_CLIENT        = 1;
-        private const int COL_ORDER_NAME    = 2;
-        private const int COL_DUCT_TYPE     = 3;
-        private const int COL_URGENT        = 4;
-        private const int COL_DATE_CREATED  = 5;
-        private const int COL_DONE          = 6;
+        private const int COL_CLIENT       = 1;
+        private const int COL_ORDER_NAME   = 2;
+        private const int COL_DUCT_TYPE    = 3;
+        private const int COL_URGENT       = 4;
+        private const int COL_DATE_CREATED = 5;
+        private const int COL_DONE         = 6;
 
         private readonly string _filePath;
 
         public ExcelService()
         {
-            // Place the file next to the executable
             _filePath = Path.Combine(
                 AppDomain.CurrentDomain.BaseDirectory,
                 FILE_NAME);
@@ -35,9 +34,6 @@ namespace DuctOrderApp.Services
 
         // ── Public API ───────────────────────────────────────────────────────
 
-        /// <summary>
-        /// Ensures the Excel file and headers exist. Call once on startup.
-        /// </summary>
         public void EnsureFileExists()
         {
             if (File.Exists(_filePath)) return;
@@ -50,18 +46,16 @@ namespace DuctOrderApp.Services
             }
         }
 
-        /// <summary>
-        /// Appends a new order row to the Excel file.
-        /// </summary>
         public void SaveOrder(OrderModel order)
         {
             EnsureFileExists();
 
-            using (var wb = XLWorkbook.OpenOrCreate(_filePath))
+            // FIX: use new XLWorkbook(path) to open existing file
+            using (var wb = new XLWorkbook(_filePath))
             {
-                var ws = GetOrCreateSheet(wb);
-
+                var ws      = GetOrCreateSheet(wb);
                 int nextRow = GetNextEmptyRow(ws);
+
                 ws.Cell(nextRow, COL_CLIENT).Value       = order.Client;
                 ws.Cell(nextRow, COL_ORDER_NAME).Value   = order.OrderName;
                 ws.Cell(nextRow, COL_DUCT_TYPE).Value    = order.DuctType;
@@ -73,34 +67,32 @@ namespace DuctOrderApp.Services
             }
         }
 
-        /// <summary>
-        /// Loads all orders from the Excel file.
-        /// </summary>
         public List<OrderModel> LoadOrders()
         {
             var orders = new List<OrderModel>();
-
             if (!File.Exists(_filePath)) return orders;
 
-            using (var wb = XLWorkbook.OpenOrCreate(_filePath))
+            // FIX: use new XLWorkbook(path) to open existing file
+            using (var wb = new XLWorkbook(_filePath))
             {
-                var ws = GetOrCreateSheet(wb);
+                var ws      = GetOrCreateSheet(wb);
                 int lastRow = ws.LastRowUsed()?.RowNumber() ?? 1;
 
-                // Row 1 is the header row; data starts at row 2
                 for (int row = 2; row <= lastRow; row++)
                 {
                     string client = ws.Cell(row, COL_CLIENT).GetString();
-                    if (string.IsNullOrWhiteSpace(client)) continue;  // skip blank rows
+                    if (string.IsNullOrWhiteSpace(client)) continue;
 
                     orders.Add(new OrderModel
                     {
                         Client      = client,
                         OrderName   = ws.Cell(row, COL_ORDER_NAME).GetString(),
                         DuctType    = ws.Cell(row, COL_DUCT_TYPE).GetString(),
-                        Urgent      = ws.Cell(row, COL_URGENT).GetString().Equals("YES", StringComparison.OrdinalIgnoreCase),
+                        Urgent      = ws.Cell(row, COL_URGENT).GetString()
+                                        .Equals("YES", StringComparison.OrdinalIgnoreCase),
                         DateCreated = ws.Cell(row, COL_DATE_CREATED).GetString(),
-                        Done        = ws.Cell(row, COL_DONE).GetString().Equals("YES", StringComparison.OrdinalIgnoreCase)
+                        Done        = ws.Cell(row, COL_DONE).GetString()
+                                        .Equals("YES", StringComparison.OrdinalIgnoreCase)
                     });
                 }
             }
@@ -108,14 +100,11 @@ namespace DuctOrderApp.Services
             return orders;
         }
 
-        /// <summary>
-        /// Overwrites the entire sheet with the provided list (used after edit/delete).
-        /// </summary>
         public void OverwriteOrders(List<OrderModel> orders)
         {
-            using (var wb = XLWorkbook.OpenOrCreate(_filePath))
+            // FIX: use new XLWorkbook(path) to open existing file
+            using (var wb = new XLWorkbook(_filePath))
             {
-                // Remove the old sheet and recreate it clean
                 if (wb.Worksheets.Contains(SHEET_NAME))
                     wb.Worksheets.Delete(SHEET_NAME);
 
@@ -160,14 +149,12 @@ namespace DuctOrderApp.Services
             ws.Cell(1, COL_DATE_CREATED).Value = "DATE CREATED";
             ws.Cell(1, COL_DONE).Value         = "DONE";
 
-            // Style the header row
             var headerRow = ws.Row(1);
-            headerRow.Style.Font.Bold = true;
-            headerRow.Style.Fill.BackgroundColor = XLColor.FromHtml("#1E88E5");
-            headerRow.Style.Font.FontColor        = XLColor.White;
-            headerRow.Style.Alignment.Horizontal  = XLAlignmentHorizontalValues.Center;
+            headerRow.Style.Font.Bold                 = true;
+            headerRow.Style.Fill.BackgroundColor      = XLColor.FromHtml("#1E88E5");
+            headerRow.Style.Font.FontColor            = XLColor.White;
+            headerRow.Style.Alignment.Horizontal      = XLAlignmentHorizontalValues.Center;
 
-            // Auto-fit columns
             ws.Columns().AdjustToContents();
         }
 

@@ -255,14 +255,29 @@ namespace DuctOrderApp.Forms
                 Padding   = new Padding(0, 0, 0, 8)
             };
 
+            // FIX: PlaceholderText is .NET 5+ only; simulate it for net48
             txtSearch = new TextBox
             {
-                PlaceholderText = "🔍  Search client or order…",
+                Text   = "Search client or order...",
                 Left   = 0, Top = 4, Width = 260, Height = 30,
                 Anchor = AnchorStyles.Top | AnchorStyles.Left
             };
             ThemeHelper.StyleTextBox(txtSearch);
-            txtSearch.TextChanged += (s, e) => ApplyFilter();
+            txtSearch.ForeColor = ThemeHelper.TextSecondary;
+            txtSearch.GotFocus += (s, e) =>
+            {
+                if (txtSearch.Text == "Search client or order...")
+                { txtSearch.Text = ""; txtSearch.ForeColor = ThemeHelper.TextPrimary; }
+            };
+            txtSearch.LostFocus += (s, e) =>
+            {
+                if (string.IsNullOrWhiteSpace(txtSearch.Text))
+                { txtSearch.Text = "Search client or order..."; txtSearch.ForeColor = ThemeHelper.TextSecondary; }
+            };
+            txtSearch.TextChanged += (s, e) =>
+            {
+                if (txtSearch.Text != "Search client or order...") ApplyFilter();
+            };
 
             chkFilterUrgent = new CheckBox
             {
@@ -275,14 +290,10 @@ namespace DuctOrderApp.Forms
             chkFilterUrgent.CheckedChanged += (s, e) => ApplyFilter();
 
             // Action buttons on the right
-            btnEdit   = new Button { Text = "✏ Edit",   Width = 88, Height = 30, Top = 4, Anchor = AnchorStyles.Top | AnchorStyles.Right, Right = parent.Width - 8 };
-            btnDelete = new Button { Text = "✖ Delete", Width = 88, Height = 30, Top = 4, Anchor = AnchorStyles.Top | AnchorStyles.Right };
-            btnExport = new Button { Text = "📄 Export", Width = 88, Height = 30, Top = 4, Anchor = AnchorStyles.Top | AnchorStyles.Right };
-
-            // position from right
-            btnExport.Left = parent.Width - 288;
-            btnDelete.Left = parent.Width - 192;
-            btnEdit.Left   = parent.Width - 96;
+            // FIX: Control.Right is read-only; use Left = computed position instead
+            btnEdit   = new Button { Text = "✏ Edit",    Width = 88, Height = 30, Top = 4, Left = 460, Anchor = AnchorStyles.Top | AnchorStyles.Right };
+            btnDelete = new Button { Text = "✖ Delete",  Width = 88, Height = 30, Top = 4, Left = 556, Anchor = AnchorStyles.Top | AnchorStyles.Right };
+            btnExport = new Button { Text = "📄 Export", Width = 88, Height = 30, Top = 4, Left = 652, Anchor = AnchorStyles.Top | AnchorStyles.Right };
 
             ThemeHelper.StyleButtonSecondary(btnEdit);
             ThemeHelper.StyleButtonDanger(btnDelete);

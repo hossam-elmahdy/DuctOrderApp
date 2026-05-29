@@ -3,13 +3,14 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <!-- Change to net6.0-windows or net8.0-windows if targeting modern .NET -->
-    <TargetFramework>net48</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <AssemblyName>DuctOrderApp</AssemblyName>
     <RootNamespace>DuctOrderApp</RootNamespace>
     <Nullable>disable</Nullable>
     <LangVersion>8.0</LangVersion>
-    <ApplicationIcon>app.ico</ApplicationIcon>
+
   </PropertyGroup>
 
   <ItemGroup>
